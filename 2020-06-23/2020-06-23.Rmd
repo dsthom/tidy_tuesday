@@ -1,0 +1,146 @@
+---
+title: "2020-06-23"
+author: "Darren S Thomas"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+always_allow_html: yes
+output: github_document
+---
+
+```{r setup, include=FALSE}
+# configure Rmd chunks
+knitr::opts_chunk$set(
+    echo = TRUE,      # output code chunks
+    message = FALSE,  # toggle off message output 
+    warning = FALSE)  # toggle off warning output
+
+# load frequently used packages
+library(gganimate)
+library(lubridate)
+library(sf)
+library(tidyverse)
+
+# set default ggplot theme
+courier_bw <- theme_bw() +
+  theme(text = element_text(family = "Courier"),
+        legend.position = "bottom")
+
+theme_set(courier_bw)
+```
+
+```{r read_data}
+tuesdata <- tidytuesdayR::tt_load('2020-06-23')
+
+ind <- tuesdata$individuals
+
+loc <- tuesdata$locations
+```
+
+```{r}
+caribou <- loc %>% 
+  # join sex var from ind to loc
+  left_join(
+    select(ind, animal_id, sex),
+    by = "animal_id",
+    keep = FALSE
+  ) %>% 
+  mutate(
+    # extract date from timestamp
+    date = as.Date(timestamp),
+     # engineer calendar_year from timestamp
+    calendar_year = year(timestamp)) %>% 
+    # create a new var by uniting season and year
+    unite(
+      col = "season_year",
+      season, calendar_year,
+      sep = " ",
+      remove = FALSE
+    )
+```
+
+Do all herds have equal follow-up?
+
+```{r}
+caribou %>% 
+  group_by(study_site) %>% 
+  summarise(
+    start_followup = min(date),
+    end_followup = max(date),
+    length_followup = difftime(ymd(end_followup), ymd(start_followup), units = "days")
+  ) %>% 
+  arrange(desc(length_followup))
+```
+
+We'll study caribou from the Quintette herd/study, which has one of the longest (recent) follow-up period.
+
+```{r}
+caribou <- caribou %>% 
+  filter(study_site == "Quintette")
+```
+
+# Cananda
+
+Next, pull the geometry for Canada?
+```{r}
+# pull geometry for Canada
+canada <- rnaturalearth::ne_countries(
+  country = "Canada",
+  returnclass = "sf"
+)
+```
+
+```{r cartography}
+# # plot sf object directly
+ggplot(data = canada) +
+  geom_sf() +
+  geom_point(
+    data = caribou, 
+    aes(x = longitude, y = latitude, colour = study_site),
+    size = 0.1,
+    alpha = 0.1)
+```
+
+Where are the tracked caribou located? Seemingly only within the state of Britisg Columbia. We'll restrict our plot to this provicne only.
+
+```{r}
+# pull geomotry for british columbia
+bc <- rnaturalearth::ne_states(
+  country = "Canada",
+  returnclass = "sf"
+) %>% 
+  filter(name == "British Columbia")
+```
+
+Now, plot their temporal migration.
+
+```{r}
+ggplot(data = bc) +
+  geom_sf() +
+  geom_point(
+    data = caribou, 
+    aes(x = longitude, y = latitude),
+    size = 0.1,
+    alpha = 0.1,
+    colour = "#FF6666") +
+  # animate
+  transition_time(date
+                    # optimise transitions
+                    ) +
+  shadow_wake(wake_length = 0.25) +
+  labs(
+    title = "Migration of Quintette caribou across British Columbia",
+    subtitle = "{frame_time}",
+    x = "Longitude",
+    y = "Latitude"
+  )
+```
+
+```{r save}
+# export to gif
+anim_save(
+  filename = "../output/2020-06-23.gif",
+  animation = last_animation())
+```
+
+```{r info, echo = FALSE}
+print(sessionInfo())
+```
