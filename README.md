@@ -1,6 +1,6 @@
 # tidy_tuesday
 
-An index of data visiaulsations for [Tidy Tuesday](https://github.com/rfordatascience/tidytuesday) datasets.
+An index of data visualisations for [Tidy Tuesday](https://github.com/rfordatascience/tidytuesday).
 
 ## [2020](data/2020) 
 
