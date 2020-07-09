@@ -130,7 +130,8 @@ ggplot(data = bc) +
     title = "Migration of Quintette caribou across British Columbia",
     subtitle = "{frame_time}",
     x = "Longitude",
-    y = "Latitude"
+    y = "Latitude",
+    caption = "source: British Columbia Ministry of Environment & Climate Change"
   )
 ```
 
